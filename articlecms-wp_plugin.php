@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name: Drafts Feed
- * Plugin URI:  http://bueltge.de/wordpress-feed-fuer-entwuerfe/829/
- * Description: Add a new Feed for drafts: <code>/?feed=drafts</code> or with active permalinks <code>/feed/drafts</code>
- * Version:     1.1.0
- * Author:      Frank Bültge
- * Author URI:  http://bueltge.de/
+ * Plugin Name: Magaport Articls CMS
+ * Plugin URI:  https://github.com/magaport/articlecms-wp_plugin
+ * Description: Add a new Feed for articles: <code>/?feed=articles</code> or with active permalinks <code>/feed/articles</code>. Based on https://github.com/bueltge/Drafts-Feed.
+ * Version:     0.1.0
+ * Author:      Antonio Kamiya
+ * Author URI:  https://twitter.com/antonio_kamiya
  * Licence:     GPLv2
- * Last Change: 03/05/2014
+ * Last Change: 09/16/2019
  */
 
 //avoid direct calls to this file, because now WP core and framework has been used
@@ -17,18 +17,18 @@ if ( ! function_exists( 'add_filter' ) ) {
 	exit();
 }
 
-if ( ! class_exists( 'Draft_Feed' ) ) {
-	add_action( 'plugins_loaded', array( 'Draft_Feed', 'init' ) );
+if (!class_exists('ArticleCMS')) {
+	add_action('plugins_loaded', array( 'ArticleCMS', 'init' ) );
 	
-	class Draft_Feed {
+	class ArticleCMS {
 		
 		protected static $classobj  = NULL;
 		
-		public static $feed_slug    = 'drafts';
+		public static $feed_slug    = 'articles';
 		
-		public static $widget_slug  = 'dashboard_recent_drafts_all_authors';
+		public static $widget_slug  = 'dashboard_recent_articles';
 		
-		public static $options_slug = 'draft_feed_options';
+		public static $options_slug = 'article_feed_options';
 		
 		/**
 		* Handler for the action 'init'. Instantiates this class.
@@ -52,10 +52,10 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			
 			$options = $this->get_options();
 			
-			// if options allow the draft feed
+			// if options allow the articles feed
 			if ( 1 === $options[ 'feed' ] ) {
 				// add custom feed
-				add_action( 'init', array( $this, 'add_draft_feed' ) );
+				add_action( 'init', array( $this, 'add_articles_feed' ) );
 				// change query for custom feed
 				add_action( 'pre_get_posts', array( $this, 'feed_content' ) );
 			}
@@ -78,30 +78,28 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			if ( 'en_US' === $locale )
 				return;
 			
-			load_plugin_textdomain( 'draft_feed', FALSE, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+			load_plugin_textdomain( 'article_feed', FALSE, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 		}
 		
 		/**
-		 * Return the drafts
+		 * Return the articles
 		 * 
-		 * @param   Integer $post_per_page for count of drafts
+		 * @param   Integer $post_per_page for count of articles
 		 * @return  Array 
 		 */
-		public function get_drafts() {
+		public function get_articles() {
 			
 			$options = $this->get_options();
 			
 			$args = array(
 				'post_type'      => 'post',
-				'post_status'    => 'draft',
-				'posts_per_page' => $options[ 'posts_per_page' ],
 				'orderby'        => 'modified',
 				'order'          => 'DESC'
 			);
 			
-			$drafts_query = new WP_Query( $args );
+			$articles_query = new WP_Query( $args );
 			
-			return $drafts_query->posts;
+			return $articles_query->posts;
 		}
 		
 		/**
@@ -135,31 +133,32 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 		 * @param  Array $drafts
 		 * @return void
 		 */
-		public function dashboard_recent_drafts( $drafts = FALSE ) {
+		public function dashboard_recent_articles( $articles = FALSE ) {
 			
-			if ( ! $drafts )
-				$drafts = $this->get_drafts();
+			if ( ! $articles )
+				$articles = $this->get_articles();
 			
-			if ( $drafts && is_array( $drafts ) ) {
+			if ( $articles && is_array( $articles ) ) {
 				
 				// Get options
 				$options = $this->get_options();
-				// Count all draft posts
-				$count   = (int) wp_count_posts()->draft;
+				// Count all posts
+				$post_count =  wp_count_posts();
+				$count   = (int) $post_count->draft + $post_count->publish;
 				
 				$list = array();
-				foreach ( $drafts as $draft ) {
-					
-					$url    = get_edit_post_link( $draft->ID );
-					$title  = _draft_or_post_title( $draft->ID );
-					$user   = get_userdata( $draft->post_author );
+				foreach ( $articles as $article ) {
+
+					$url    = get_edit_post_link( $article->ID );
+					$title  = _draft_or_post_title( $article->ID );
+					$user   = get_userdata( $article->post_author );
 					$author = $user->display_name;
 					$item = "<h4><a href='$url' title='" . sprintf( __( 'Edit &#8220;%s&#8221;' ), esc_attr( $title ) ) . "'>" 
-						. esc_html( $title ) . "</a> <small>" . sprintf( __( 'by %s, ', 'draft_feed' ), esc_attr( $author ) ) . "<abbr title='" . get_the_time( __( 'Y/m/d g:i:s A' ), $draft ) . "'>" 
-						. get_the_time( get_option( 'date_format' ), $draft ) . '</abbr></small></h4>';
+						. esc_html( $title ) . "</a> <small>" . sprintf( __( 'by %s, ', 'article_feed' ), esc_attr( $author ) ) . "<abbr title='" . get_the_time( __( 'Y/m/d g:i:s A' ), $articles ) . "'>" 
+						. get_the_time( get_option( 'date_format' ), $article ) . '</abbr></small></h4>';
 					
 					if ( 0 === $options[ 'only_title' ]
-						   && $the_content = preg_split( '#[\r\n\t ]#', strip_tags( $draft->post_content ), 11, PREG_SPLIT_NO_EMPTY ) )
+						   && $the_content = preg_split( '#[\r\n\t ]#', strip_tags( $articles->post_content ), 11, PREG_SPLIT_NO_EMPTY ) )
 						$item .= '<p>' . join( ' ', array_slice( $the_content, 0, 10 ) ) . ( 10 < count( $the_content ) ? '&hellip;' : '' ) . '</p>';
 						
 					$list[] = $item;
@@ -168,11 +167,11 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			<ul>
 				<li><?php echo join( "</li>\n<li>", $list ); ?></li>
 			</ul>
-			<p class="textright"><a href="edit.php?post_status=draft" class="button"><?php printf( __( 'View all %d', 'draft_feed' ), $count ); ?></a></p>
+			<p class="textright"><a href="edit.php" class="button"><?php printf( __( 'View all %d', 'article_feed' ), $count ); ?></a></p>
 			<?php
 			} else {
 				
-				_e( 'There are no drafts at the moment', 'draft_feed' );
+				_e( 'There are no artices at the moment', 'article_feed' );
 			}
 		}
 		
@@ -207,17 +206,17 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			?>
 			<p>
 				<label for="feed">
-					<input type="checkbox" id="feed" name="feed" value="1" <?php checked( 1, $options[ 'feed' ] ); ?> /> <?php _e( 'Create Draft Feed?', 'draft_feed' ); ?>
+					<input type="checkbox" id="feed" name="feed" value="1" <?php checked( 1, $options[ 'feed' ] ); ?> /> <?php _e( 'Create Draft Feed?', 'article_feed' ); ?>
 				</label>
 			</p>
 			<p>
 				<label for="only_title">
-					<input type="checkbox" id="only_title" name="only_title" value="1" <?php checked( 1, $options[ 'only_title' ] ); ?> /> <?php _e( 'Show only the title inside the dashboard widget?', 'draft_feed' ); ?>
+					<input type="checkbox" id="only_title" name="only_title" value="1" <?php checked( 1, $options[ 'only_title' ] ); ?> /> <?php _e( 'Show only the title inside the dashboard widget?', 'article_feed' ); ?>
 				</label>
 			</p>
 			<p>
 				<label for="posts_per_page">
-					<input type="text" id="posts_per_page" name="posts_per_page" value="<?php esc_attr_e( $options[ 'posts_per_page' ] ); ?>" size="2" /> <?php _e( 'How many items show inside the dashboard widget?', 'draft_feed' ); ?>
+					<input type="text" id="posts_per_page" name="posts_per_page" value="<?php esc_attr_e( $options[ 'posts_per_page' ] ); ?>" size="2" /> <?php _e( 'How many items show inside the dashboard widget?', 'article_feed' ); ?>
 				</label>
 			</p>
 			<?php
@@ -238,7 +237,7 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			
 			$args = wp_parse_args(
 				get_option( self::$options_slug ),
-				apply_filters( 'draft_feed_options', $defaults )
+				apply_filters( 'article_feed_options', $defaults )
 			);
 			
 			return $args;
@@ -253,20 +252,20 @@ if ( ! class_exists( 'Draft_Feed' ) ) {
 			
 			wp_add_dashboard_widget(
 				self::$widget_slug,
-				__( 'Recents Drafts', 'draft_feed' ) . 
-				' <small>' . __( 'of all authors', 'draft_feed' ) . '</small>',
-				array( $this, 'dashboard_recent_drafts' ), // content
+				__( 'Recents Drafts', 'article_feed' ) . 
+				' <small>' . __( 'of all authors', 'article_feed' ) . '</small>',
+				array( $this, 'dashboard_recent_articles' ), // content
 				array( $this, 'widget_settings' ) // control
 			);
 		}
 		
 		/**
-		 * Add feed with key
+		 * Add articles with key
 		 * Use as key the var $feed_strings
 		 * 
 		 * @return  void
 		 */
-		public function add_draft_feed() {
+		public function add_articles_feed() {
 			
 			// set name for the feed
 			// http://examble.com/?feed=drafts

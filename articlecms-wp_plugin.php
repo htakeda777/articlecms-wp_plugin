@@ -61,9 +61,9 @@ if (!class_exists('ArticleCMS')) {
 			}
 			
 			// add dashboard widget
-			add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget') );
+			// add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget') );
 			// add multilingual possibility, load lang file
-			add_action( 'admin_init', array( $this, 'textdomain') );
+			// add_action( 'admin_init', array( $this, 'textdomain') );
 		}
 		
 		/**
@@ -125,15 +125,33 @@ if (!class_exists('ArticleCMS')) {
 
 			// check auth
 			$this->check_feed_auth();
-			
-			$query->set( 'post_status', array( 'draft' ) );
+
+//			$query->set( 'post_status', array( 'any' ) );
+			$query->set( 'order', 'ASC' );
 			$query->set( 'orderby', 'modified' );
+
+			if (isset($_GET["since"]) && strlen($_GET["since"]) > 0) {
+				add_filter( 'posts_where', array ( $this, 'filter_modified_since' ));
+			}
 		}
 		
 		/**
+		 * Filter posts newer than 'since' param specified in URL
+		 * 
+		 * @param  String $where
+		 * @return String
+		 */
+		function filter_modified_since( $where = '' ) {
+			$since = $_GET["since"];
+			$where .= " AND post_modified >= '$since'";
+			
+			return $where;
+		}
+
+		/**
 		 * Get dashbaord content
 		 * 
-		 * @param  Array $drafts
+		 * @param  Array $articles
 		 * @return void
 		 */
 		public function dashboard_recent_articles( $articles = FALSE ) {

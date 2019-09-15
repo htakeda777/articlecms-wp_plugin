@@ -298,8 +298,7 @@ if (!class_exists('ArticleCMS')) {
 		 * @return  void
 		 */
 		public function get_feed_template() {
-			$template_path = plugin_dir_path(__FILE__)."/feed-article.php";
-			error_log("template path is ".$template_path);
+			$template_path = plugin_dir_path(__FILE__)."feed-article.php";
 
 			load_template( $template_path );
 		}

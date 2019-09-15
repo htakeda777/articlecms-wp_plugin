@@ -122,6 +122,9 @@ if (!class_exists('ArticleCMS')) {
 			// Bail if it's not our feed
 			if ( ! $query->is_feed( self::$feed_slug ) )
 				return;
+
+			// check auth
+			$this->check_feed_auth();
 			
 			$query->set( 'post_status', array( 'draft' ) );
 			$query->set( 'orderby', 'modified' );
@@ -266,9 +269,8 @@ if (!class_exists('ArticleCMS')) {
 		 * @return  void
 		 */
 		public function add_articles_feed() {
-			
 			// set name for the feed
-			// http://examble.com/?feed=drafts
+			// http://example.com/?feed=articles
 			add_feed( self::$feed_slug, array( $this, 'get_feed_template' ) );
 		}
 		
@@ -281,6 +283,24 @@ if (!class_exists('ArticleCMS')) {
 			
 			load_template( ABSPATH . WPINC . '/feed-rss2.php' );
 		}
-	
+
+		// action handler for feed authentication
+		// https://jerickson.net/requiring-authentication-wordpress-feeds/
+		function check_feed_auth() {
+			if (!isset($_SERVER['PHP_AUTH_USER'])) {
+				header('WWW-Authenticate: Basic realm="RSS Feeds"');
+				header('HTTP/1.0 401 Unauthorized');
+				echo 'Feeds from this site are private';
+				exit;
+			} else {
+				if (is_wp_error(wp_authenticate($_SERVER['PHP_AUTH_USER'],$_SERVER['PHP_AUTH_PW']))) {
+					header('WWW-Authenticate: Basic realm="RSS Feeds"');
+					header('HTTP/1.0 401 Unauthorized');
+					echo 'Username and password were not correct';
+					exit;
+				}
+			}
+		}
+		
 	} // end class
 } // end if class exists

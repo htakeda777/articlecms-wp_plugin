@@ -298,8 +298,10 @@ if (!class_exists('ArticleCMS')) {
 		 * @return  void
 		 */
 		public function get_feed_template() {
-			
-			load_template( ABSPATH . WPINC . '/feed-rss2.php' );
+			$template_path = plugin_dir_path(__FILE__)."/feed-article.php";
+			error_log("template path is ".$template_path);
+
+			load_template( $template_path );
 		}
 
 		// action handler for feed authentication

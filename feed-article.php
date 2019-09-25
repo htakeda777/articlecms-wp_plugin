@@ -67,6 +67,7 @@ do_action( 'rss_tag_pre', 'atom' );
 		<link rel="alternate" type="<?php bloginfo_rss( 'html_type' ); ?>" href="<?php the_permalink_rss(); ?>" />
 		<id><?php the_guid(); ?></id>
 		<cms_article_id><?php the_ID(); ?></cms_article_id>
+		<thumbnail><?php if ( has_post_thumbnail() ) { the_post_thumbnail_url(); } ?></thumbnail>
 		<updated><?php echo get_post_modified_time( 'Y-m-d\TH:i:s\Z', true ); ?></updated>
 		<published><?php echo get_post_time( 'Y-m-d\TH:i:s\Z', true ); ?></published>
 		<?php the_category_rss( 'atom' ); ?>

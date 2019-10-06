@@ -26,6 +26,8 @@ Also see the posts about the idea.
  * In your WordPress admin click Plugin --> Add New --> Upload Plugin.
  * Upload the ZIP file.
  * Activate the plugin.
+ * (for bitnami installations) edit and place httpd-app.conf to /opt/bitnami/apps/wordpress/conf
+ * (for others) edit and place rules in httpd-app.conf to .htaccess
 
 ## Other Notes
 ### Bugs, technical hints or contribute

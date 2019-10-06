@@ -8,14 +8,19 @@ else {
     require_once( '/opt/bitnami/apps/wordpress/htdocs/wp-load.php' );
 }
 
-is_user_logged_in() ||  auth_redirect();
-
+// get path to content
+$srcfile = isset($_GET[ 'file' ])?$_GET[ 'file' ]:'';
 list($basedir) = array_values(array_intersect_key(wp_upload_dir(), array('basedir' => 1)))+array(NULL);
+$file =  rtrim($basedir,'/').'/'.str_replace('..', '', $srcfile);
 
-$file =  rtrim($basedir,'/').'/'.str_replace('..', '', isset($_GET[ 'file' ])?$_GET[ 'file' ]:'');
+// provide url based auth
+$auth = isset($_GET[ 'auth' ])?$_GET[ 'auth' ]:false;
+$is_authed = ($auth === md5($file));
+$is_authed || is_user_logged_in() ||  auth_redirect();
+
 if (!$basedir || !is_file($file)) {
     status_header(404);
-    die('404 &#8212; File not found.');
+    die('404 &#8212; File not found. '.$file);
 }
 
 $mime = wp_check_filetype($file);

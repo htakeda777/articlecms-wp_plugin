@@ -1,7 +1,12 @@
 <?php
 
 // based on https://carlofontanos.com/restrict-access-to-wp-contentuploads-when-user-is-not-logged-in/
-require_once('wp-load.php');
+if (file_exists( dirname( __FILE__ ) . '/../../../wp-load.php')) {
+    require_once( dirname( __FILE__ ) . '/../../../wp-load.php' );
+}
+else {
+    require_once( '/opt/bitnami/apps/wordpress/htdocs/wp-load.php' );
+}
 
 is_user_logged_in() ||  auth_redirect();
 

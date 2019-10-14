@@ -29,6 +29,8 @@ if (!class_exists('ArticleCMS')) {
 		public static $widget_slug  = 'dashboard_recent_articles';
 		
 		public static $options_slug = 'article_feed_options';
+
+		private $upload_dir = "";
 		
 		/**
 		* Handler for the action 'init'. Instantiates this class.
@@ -49,7 +51,8 @@ if (!class_exists('ArticleCMS')) {
 		 * @return  void
 		 */
 		public function __construct() {
-			
+			$this->upload_dir = get_temp_dir();
+					
 			$options = $this->get_options();
 			
 			// if options allow the articles feed
@@ -59,7 +62,17 @@ if (!class_exists('ArticleCMS')) {
 				// change query for custom feed
 				add_action( 'pre_get_posts', array( $this, 'feed_content' ) );
 			}
-			
+
+			// add filters and actions for exporting samples
+			add_filter( 'bulk_actions-edit-post', array( $this, 'add_bulk_export_sample' ), 10, 1 );
+			// handle_bulk_actions-{$screen} でfilterする
+			add_filter( 
+				'handle_bulk_actions-edit-post', 
+				array( $this, 'handle_bulk_export_sample' ), 
+				10, 
+				3
+			);
+
 			// add dashboard widget
 			// add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget') );
 			// add multilingual possibility, load lang file
@@ -80,7 +93,128 @@ if (!class_exists('ArticleCMS')) {
 			
 			load_plugin_textdomain( 'article_feed', FALSE, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
 		}
+
+		/**
+		 * add export sample bulk action
+		 * 
+		 * @param   Array $actions 
+		 * @return  Array 
+		 */
+		function add_bulk_export_sample( $actions ) {
+			$actions['export_sample'] = esc_html('サンプルダウンロード');
 		
+			return $actions;
+		}
+
+		function handle_bulk_export_sample( $redirect_to, $doaction, $post_ids ) {
+			// 適用されたアクションかどうかを判定する
+				if ( 'export_sample' !== $doaction ) {
+				return $redirect_to;
+			}
+
+			$counter = $this->send_samples($post_ids);
+		}
+		
+		function send_samples($post_ids) {
+			$zip_file_name = $this->upload_dir . "exported-documents".time().".zip";
+			$zip = new ZipArchive();
+
+			// open archive
+			if ($zip->open($zip_file_name, ZIPARCHIVE::CREATE) !== TRUE) {
+				die ("Could not open archive");
+			}
+
+			$file_list = array();
+			foreach($post_ids as $post_id) {
+				// get post content
+				$post_contents = apply_filters(
+					'the_content', 
+					get_post_field('post_content', $post_id)
+				);
+
+				if ( is_null($post_contents) || strlen($post_contents) == 0 ) {
+					continue;
+				}
+
+				// fixup html and save images
+				$prefix = '';
+				$postfix = '</body>';
+			
+				$original_html = '<html lang="en"><head><meta charset="utf-8"/></head><body>'
+					.(string) $post_contents
+					."</body></html>";
+
+				// remove comments
+				$html = preg_replace('/<!--(.|\s)*?-->/', '', $original_html);
+
+				// extract images
+				$doc = new DOMDocument();
+				@$doc->loadHTML($html);
+		
+				$tags = $doc->getElementsByTagName('img');
+		
+				// download all images and modify img path
+				foreach ($tags as $tag) {
+					$src = $tag->getAttribute('src');
+					$imgsrc = $this->downloadImage($src);
+					
+					$tag->setAttribute('src', $imgsrc);
+
+					$zip->addFile($imgsrc, basename($imgsrc)) or die ("ERROR: Could not add file: $file_name");
+					$file_list[] = $imgsrc;		
+				}
+		
+				// determine file name
+				$file_name = $this->upload_dir . "post-$post_id";
+
+				// save html
+				file_put_contents($file_name.".html", (string) (simplexml_import_dom($doc)->asXML()));
+				$zip->addFile($file_name.".html", basename($file_name).".html") or die ("ERROR: Could not add file: $file_name");
+				$file_list[] = $file_name;
+
+				// remove all tags
+				$text = strip_tags($html);
+				file_put_contents($file_name.".txt", $text);
+
+				$zip->addFile($file_name.".txt", basename($file_name).".txt") or die ("ERROR: Could not add file: $file_name");
+				$file_list[] = $file_name;
+			}
+
+			$zip->close();
+
+			// deliver
+			header("Content-type: octet/stream");
+			header("Content-disposition: attachment; filename=".basename($zip_file_name).";");
+			header("Content-Length: ".filesize($zip_file_name));
+
+			readfile($zip_file_name);
+
+			// clean up
+			foreach ($file_list as $file_name) {
+				@unlink($file_name);
+			}
+			@unlink($zip_file_name);
+
+			exit;			
+		}
+
+		function downloadImage($src) {
+			if (is_null($src) || strlen($src) == 0) {
+				return false;
+			}
+	 
+			$pathinfo = pathinfo(parse_url($src, PHP_URL_PATH));
+			$md5_src = "/opt/bitnami/apps/wordpress/htdocs"
+				.$pathinfo['dirname']."/"
+				.$pathinfo["basename"];
+			$md5 = md5($md5_src);
+			$authed_src = "$src?auth=$md5";
+			$imgsrc = $this->upload_dir.$pathinfo["basename"];
+			file_put_contents($imgsrc, file_get_contents($authed_src)); 
+	 
+			return $imgsrc;
+		}
+
 		/**
 		 * Return the articles
 		 * 

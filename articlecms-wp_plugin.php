@@ -130,6 +130,10 @@ if (!class_exists('ArticleCMS')) {
 			$query->set( 'order', 'ASC' );
 			$query->set( 'orderby', 'modified' );
 
+			if (isset($_GET["offset"]) && strlen($_GET["offset"]) > 0) {
+				$query->set( 'offset', $_GET["offset"] );
+			}
+			                                                                                                                                     
 			if (isset($_GET["since"]) && strlen($_GET["since"]) > 0) {
 				add_filter( 'posts_where', array ( $this, 'filter_modified_since' ));
 			}

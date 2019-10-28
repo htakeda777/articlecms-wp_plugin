@@ -271,6 +271,10 @@ if (!class_exists('ArticleCMS')) {
 			if (isset($_GET["since"]) && strlen($_GET["since"]) > 0) {
 				add_filter( 'posts_where', array ( $this, 'filter_modified_since' ));
 			}
+
+			if (isset($_GET["post_id"]) && strlen($_GET["post_id"]) > 0) {
+				add_filter( 'posts_where', array ( $this, 'filter_post_id' ));
+			}
 		}
 		
 		/**
@@ -282,6 +286,19 @@ if (!class_exists('ArticleCMS')) {
 		function filter_modified_since( $where = '' ) {
 			$since = $_GET["since"];
 			$where .= " AND post_modified >= '$since'";
+			
+			return $where;
+		}
+
+		/**
+		 * Filter posts with id specified in URL
+		 * 
+		 * @param  String $where
+		 * @return String
+		 */
+		function filter_post_id( $where = '' ) {
+			$post_id = $_GET["post_id"];
+			$where .= " AND ID = '$post_id'";
 			
 			return $where;
 		}

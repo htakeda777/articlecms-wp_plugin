@@ -61,6 +61,9 @@ if (!class_exists('ArticleCMS')) {
 				add_action( 'init', array( $this, 'add_articles_feed' ) );
 				// change query for custom feed
 				add_action( 'pre_get_posts', array( $this, 'feed_content' ) );
+
+				// for debug
+//				add_filter('query', 'sql_dump');
 			}
 
 			// add filters and actions for exporting samples
@@ -73,6 +76,12 @@ if (!class_exists('ArticleCMS')) {
 				3
 			);
 
+			function sql_dump($query)
+			{
+				error_log($query);
+				return $query;
+			}
+			
 			// add dashboard widget
 			// add_action( 'wp_dashboard_setup', array( $this, 'add_dashboard_widget') );
 			// add multilingual possibility, load lang file
@@ -260,14 +269,19 @@ if (!class_exists('ArticleCMS')) {
 			// check auth
 			$this->check_feed_auth();
 
+			// get only published posts
 //			$query->set( 'post_status', array( 'any' ) );
+
+			// set sort 
 			$query->set( 'order', 'ASC' );
 			$query->set( 'orderby', 'modified' );
 
+			// set display offset
 			if (isset($_GET["offset"]) && strlen($_GET["offset"]) > 0) {
 				$query->set( 'offset', $_GET["offset"] );
 			}
-			                                                                                                                                     
+			  
+			// customize query
 			if (isset($_GET["since"]) && strlen($_GET["since"]) > 0) {
 				add_filter( 'posts_where', array ( $this, 'filter_modified_since' ));
 			}
@@ -275,6 +289,37 @@ if (!class_exists('ArticleCMS')) {
 			if (isset($_GET["post_id"]) && strlen($_GET["post_id"]) > 0) {
 				add_filter( 'posts_where', array ( $this, 'filter_post_id' ));
 			}
+
+			if (isset($_GET["article_id"]) && strlen($_GET["article_id"]) > 0) {
+				$article_id = $_GET["article_id"];
+				$hyphen_pos = strpos($article_id, "-");
+				$issue_id = null;
+				if ($hyphen_pos) {
+					$issue_id = substr($article_id, 0, $hyphen_pos);
+					$article_id = substr($article_id, $hyphen_pos + 1);
+
+					$meta_query = $query->get('meta_query');
+					if (is_null($meta_query)) {
+						$meta_query = array();
+					}
+					elseif (!is_array($meta_query)) {
+						$meta_query = array($meta_query);
+					}
+					$meta_query[] = array(
+						'key' => 'cid',
+						'value' => $issue_id,
+					);
+					$meta_query[] = array(
+						'key' => 'articleid',
+						'value' => $article_id,
+					);
+
+					$query->set( 'meta_query', $meta_query );					
+
+					$query->set( 'post_status', array( 'any' ) );
+				}				
+			}
+			return $query;
 		}
 		
 		/**

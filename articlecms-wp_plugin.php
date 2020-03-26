@@ -167,7 +167,7 @@ if (!class_exists('ArticleCMS')) {
 					$src = $tag->getAttribute('src');
 					$imgsrc = $this->downloadImage($src);
 					
-					$tag->setAttribute('src', $imgsrc);
+					$tag->setAttribute('src',  basename($imgsrc));
 
 					$zip->addFile($imgsrc, basename($imgsrc)) or die ("ERROR: Could not add file: $file_name");
 					$file_list[] = $imgsrc;		

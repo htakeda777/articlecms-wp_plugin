@@ -145,11 +145,21 @@ if (!class_exists('ArticleCMS')) {
 					continue;
 				}
 
+				// get post title
+				$post_titles = apply_filters(
+					'the_title', 
+					get_post_field('post_title', $post_id)
+				);
+
 				// fixup html and save images
 				$prefix = '';
 				$postfix = '</body>';
 			
-				$original_html = '<html lang="en"><head><meta charset="utf-8"/></head><body>'
+				$original_html = '<html lang="en"><head><meta charset="utf-8"/><title>'
+					.(string) $post_titles
+					.'</title></head><body><h1>'
+					.(string) $post_titles
+					.'</h1>'
 					.(string) $post_contents
 					."</body></html>";
 
@@ -161,6 +171,14 @@ if (!class_exists('ArticleCMS')) {
 				@$doc->loadHTML($html);
 		
 				$tags = $doc->getElementsByTagName('img');
+
+				// determine file name
+				$file_name = $this->upload_dir . "post-$post_id";
+
+				// create directory for each article
+				$zip->addEmptyDir(basename($file_name));
+				$dirname = basename($file_name)
+					.'/';
 		
 				// download all images and modify img path
 				foreach ($tags as $tag) {
@@ -170,23 +188,21 @@ if (!class_exists('ArticleCMS')) {
 					$tag->setAttribute('src',  basename($imgsrc));
 					$tag->setAttribute('srcset',  "");
 
-					$zip->addFile($imgsrc, basename($imgsrc)) or die ("ERROR: Could not add file: $file_name");
-					$file_list[] = $imgsrc;		
+					$zip->addFile($imgsrc, $dirname.basename($imgsrc)) or die ("ERROR: Could not add file: $file_name");
+					$file_list[] = $imgsrc;
 				}
 		
-				// determine file name
-				$file_name = $this->upload_dir . "post-$post_id";
 
 				// save html
 				file_put_contents($file_name.".html", (string) (simplexml_import_dom($doc)->asXML()));
-				$zip->addFile($file_name.".html", basename($file_name).".html") or die ("ERROR: Could not add file: $file_name");
+				$zip->addFile($file_name.".html", $dirname.basename($file_name).".html") or die ("ERROR: Could not add file: $file_name");
 				$file_list[] = $file_name;
 
 				// remove all tags
 				$text = strip_tags($html);
 				file_put_contents($file_name.".txt", $text);
 
-				$zip->addFile($file_name.".txt", basename($file_name).".txt") or die ("ERROR: Could not add file: $file_name");
+				$zip->addFile($file_name.".txt", $dirname.basename($file_name).".txt") or die ("ERROR: Could not add file: $file_name");
 				$file_list[] = $file_name;
 			}
 

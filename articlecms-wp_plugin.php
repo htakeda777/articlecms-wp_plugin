@@ -230,13 +230,15 @@ if (!class_exists('ArticleCMS')) {
 			}
 	 
 			$pathinfo = pathinfo(parse_url($src, PHP_URL_PATH));
-			$md5_src = "/opt/bitnami/apps/wordpress/htdocs"
-				.$pathinfo['dirname']."/"
-				.$pathinfo["basename"];
-			$md5 = md5($md5_src);
-			$authed_src = "$src?auth=$md5";
+			//$md5_src = "/opt/bitnami/apps/wordpress/htdocs"
+			//	.$pathinfo['dirname']."/"
+			//	.$pathinfo["basename"];
+			//$md5 = md5($md5_src);
+			//$authed_src = "$src?auth=$md5";
 			$imgsrc = $this->upload_dir.$pathinfo["basename"];
-			file_put_contents($imgsrc, file_get_contents($authed_src)); 
+			//file_put_contents($imgsrc, file_get_contents($authed_src)); 
+			$org_path = str_replace(wp_upload_dir()['baseurl'],wp_upload_dir()['basedir'],$src);
+			copy($org_path, $imgsrc);
 	 
 			return $imgsrc;
 		}

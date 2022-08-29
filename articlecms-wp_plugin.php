@@ -3,11 +3,11 @@
  * Plugin Name: Magaport Articls CMS
  * Plugin URI:  https://github.com/magaport/articlecms-wp_plugin
  * Description: Add a new Feed for articles: <code>/?feed=articles</code> or with active permalinks <code>/feed/articles</code>. Based on https://github.com/bueltge/Drafts-Feed.
- * Version:     0.2.0
+ * Version:     0.3.0
  * Author:      Antonio Kamiya
  * Author URI:  https://twitter.com/antonio_kamiya
  * Licence:     GPLv2
- * Last Change: 10/14/2019
+ * Last Change: 08/29/2022
  */
 
 //avoid direct calls to this file, because now WP core and framework has been used
